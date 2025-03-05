@@ -8,24 +8,34 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="container">
-        <div id="sidebar">
-            <h2>Properties (30mi Radius)</h2>
-            <ul id="property-list"></ul>
-        </div>
-        <div id="map"></div>
+    <div id="search-bar">
+        <input type="text" id="search-input" placeholder="Search by address or owner...">
+        <button onclick="searchProperties()">Search</button>
+        <button onclick="openAddModal()">Add Property</button>
     </div>
 
-    <div id="form">
-        <h2 id="form-title">Add Property</h2>
-        <input type="text" id="address" placeholder="Address (e.g., 123 Main St, New York, NY)">
-        <input type="number" id="askingPrice" placeholder="Asking Price ($)">
-        <input type="number" id="salePrice" placeholder="Sale Price ($) (optional)">
-        <button onclick="addOrUpdateProperty()">Add to Map</button>
-        <button id="delete-btn" onclick="deleteProperty()" style="display:none;">Delete</button>
-        <input type="hidden" id="edit-id">
+    <div id="container">
+        <div id="map"></div>
+        <div id="sidebar">
+            <h2>Properties Nearby (30mi)</h2>
+            <ul id="property-list"></ul>
+        </div>
     </div>
-    
+
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <h2>Add Property</h2>
+            <input type="text" id="owner-name" placeholder="Owner Name">
+            <input type="text" id="property-address" placeholder="Property Address">
+            <input type="text" id="county" placeholder="County">
+            <input type="text" id="parcel-id" placeholder="Parcel ID">
+            <input type="text" id="property-type" placeholder="Property Type (e.g., Residential, Commercial, Land)">
+            <input type="number" id="price" placeholder="Price ($)">
+            <button onclick="addProperty()">Save</button>
+            <button onclick="closeAddModal()">Cancel</button>
+        </div>
+    </div>
+
     <div id="feedback" class="feedback"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

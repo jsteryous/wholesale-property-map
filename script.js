@@ -23,10 +23,15 @@ L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_toke
     accessToken: 'pk.eyJ1IjoianN0ZXJ5b3VzIiwiYSI6ImNtN3QxZHY5YTAxYzYycm9sOHFsMzQwb3EifQ.kNHEp3xwmXZ5ObQlZybW9A'
 }).addTo(map);
 
-const markers = {}; // Store markers by Firebase doc ID
-let userLocation = [40.7128, -74.0060]; // Default NYC, updated later
+const markers = {};
+let userLocation = [40.7128, -74.0060];
 
-// Geocode Address with Validation
+// Format Price to "K"
+function formatPrice(price) {
+    return price >= 1000 ? `$${(price / 1000).toFixed(0)}K` : `$${price}`;
+}
+
+// Geocode Address
 async function geocodeAddress(address) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=pk.eyJ1IjoianN0ZXJ5b3VzIiwiYSI6ImNtN3QxZHY5YTAxYzYycm9sOHFsMzQwb3EifQ.kNHEp3xwmXZ5ObQlZybW9A&limit=1`;
     try {
@@ -39,14 +44,14 @@ async function geocodeAddress(address) {
         throw new Error("Address not found");
     } catch (error) {
         console.error("Geocoding error:", error);
-        alert("Couldn’t validate that address. Please try a more specific one.");
+        alert("Couldn’t find that address.");
         return null;
     }
 }
 
 // Haversine Distance (in miles)
 function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 3958.8; // Earth radius in miles
+    const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -56,7 +61,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// Load Properties and Update Sidebar
+// Load Properties
 function loadProperties() {
     db.collection("properties").onSnapshot((snapshot) => {
         const propertyList = document.getElementById('property-list');
@@ -68,92 +73,84 @@ function loadProperties() {
                 // Sidebar Item
                 const li = document.createElement('li');
                 li.className = 'property-item';
-                li.innerHTML = `${data.address} - $${data.askingPrice}${data.salePrice ? ` (Sold: $${data.salePrice})` : ''}`;
-                li.onclick = () => {
-                    map.panTo([data.lat, data.lng]);
-                    editProperty(doc.id, data);
-                };
+                li.innerHTML = `${data.address}<br><small>${data.ownerName || 'Unknown Owner'} - ${formatPrice(data.price)}</small>`;
+                li.onclick = () => map.panTo([data.lat, data.lng]);
                 propertyList.appendChild(li);
 
-                // Marker Styling
+                // Marker
                 if (markers[doc.id]) markers[doc.id].remove();
                 const icon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div style="background-color: ${data.salePrice ? 'yellow' : 'red'}; color: black; padding: 5px; border-radius: 3px; text-align: center;">$${data.salePrice || data.askingPrice}</div>`,
-                    iconSize: [60, 20]
+                    className: `custom-marker ${data.sold ? 'sold' : ''}`,
+                    html: `<div>${formatPrice(data.price)}</div>`,
+                    iconSize: [80, 24]
                 });
                 markers[doc.id] = L.marker([data.lat, data.lng], { icon })
                     .addTo(map)
-                    .bindPopup(`Address: ${data.address}<br>Asking: $${data.askingPrice}<br>Sale: $${data.salePrice || 'N/A'}`);
+                    .bindPopup(`Owner: ${data.ownerName || 'N/A'}<br>Address: ${data.address}<br>County: ${data.county || 'N/A'}<br>Parcel ID: ${data.parcelId || 'N/A'}<br>Type: ${data.propertyType || 'N/A'}<br>Price: ${formatPrice(data.price)}`);
             }
         });
     });
 }
 
-// Add or Update Property
-async function addOrUpdateProperty() {
-    const address = document.getElementById('address').value;
-    const askingPrice = parseInt(document.getElementById('askingPrice').value);
-    const salePrice = parseInt(document.getElementById('salePrice').value) || null;
-    const editId = document.getElementById('edit-id').value;
+// Search Properties
+function searchProperties() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    db.collection("properties").get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.address.toLowerCase().includes(query) || (data.ownerName && data.ownerName.toLowerCase().includes(query))) {
+                map.panTo([data.lat, data.lng]);
+                markers[doc.id].openPopup();
+            }
+        });
+    });
+}
 
-    if (!address || !askingPrice) {
-        alert("Please fill in Address and Asking Price!");
+// Add Property
+async function addProperty() {
+    const ownerName = document.getElementById('owner-name').value;
+    const address = document.getElementById('property-address').value;
+    const county = document.getElementById('county').value;
+    const parcelId = document.getElementById('parcel-id').value;
+    const propertyType = document.getElementById('property-type').value;
+    const price = parseInt(document.getElementById('price').value);
+
+    if (!address || !price) {
+        alert("Please fill in Address and Price!");
         return;
     }
 
     const coords = await geocodeAddress(address);
     if (!coords) return;
 
-    const propertyData = {
+    db.collection("properties").add({
+        ownerName: ownerName || null,
         address: coords.validatedAddress,
+        county: county || null,
+        parcelId: parcelId || null,
+        propertyType: propertyType || null,
+        price: price,
         lat: coords.lat,
         lng: coords.lng,
-        askingPrice: askingPrice,
-        salePrice: salePrice
-    };
-
-    if (editId) {
-        db.collection("properties").doc(editId).update(propertyData)
-            .then(() => showFeedback("Property updated!"))
-            .catch((error) => console.error("Error updating property:", error));
-    } else {
-        db.collection("properties").add(propertyData)
-            .then(() => showFeedback("Property added!"))
-            .catch((error) => console.error("Error adding property:", error));
-    }
-    clearForm();
+        sold: false
+    }).then(() => {
+        showFeedback("Property added!");
+        closeAddModal();
+    }).catch((error) => console.error("Error adding property:", error));
 }
 
-// Edit Property
-function editProperty(id, data) {
-    document.getElementById('form-title').textContent = "Edit Property";
-    document.getElementById('address').value = data.address;
-    document.getElementById('askingPrice').value = data.askingPrice;
-    document.getElementById('salePrice').value = data.salePrice || '';
-    document.getElementById('edit-id').value = id;
-    document.getElementById('delete-btn').style.display = 'inline';
+// Modal Controls
+function openAddModal() {
+    document.getElementById('add-modal').style.display = 'block';
 }
-
-// Delete Property
-function deleteProperty() {
-    const editId = document.getElementById('edit-id').value;
-    if (editId && confirm("Delete this property?")) {
-        db.collection("properties").doc(editId).delete()
-            .then(() => showFeedback("Property deleted!"))
-            .catch((error) => console.error("Error deleting property:", error));
-        clearForm();
-    }
-}
-
-// Clear Form
-function clearForm() {
-    document.getElementById('form-title').textContent = "Add Property";
-    document.getElementById('address').value = '';
-    document.getElementById('askingPrice').value = '';
-    document.getElementById('salePrice').value = '';
-    document.getElementById('edit-id').value = '';
-    document.getElementById('delete-btn').style.display = 'none';
+function closeAddModal() {
+    document.getElementById('add-modal').style.display = 'none';
+    document.getElementById('owner-name').value = '';
+    document.getElementById('property-address').value = '';
+    document.getElementById('county').value = '';
+    document.getElementById('parcel-id').value = '';
+    document.getElementById('property-type').value = '';
+    document.getElementById('price').value = '';
 }
 
 // Show Feedback
@@ -164,14 +161,12 @@ function showFeedback(message) {
     setTimeout(() => feedback.style.display = 'none', 2000);
 }
 
-// Get User Location (for 30mi radius)
+// Get User Location
 navigator.geolocation.getCurrentPosition(
     (position) => {
         userLocation = [position.coords.latitude, position.coords.longitude];
         map.setView(userLocation, 10);
         loadProperties();
     },
-    () => {
-        loadProperties(); // Fallback to NYC if geolocation fails
-    }
+    () => loadProperties()
 );
