@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Property Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="form">
+        <h2>Add Property</h2>
+        <input type="text" id="address" placeholder="Address (e.g., 123 Main St, New York, NY)">
+        <input type="number" id="askingPrice" placeholder="Asking Price ($)">
+        <input type="number" id="salePrice" placeholder="Sale Price ($) (optional)">
+        <button onclick="addProperty()">Add to Map</button>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-firestore-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

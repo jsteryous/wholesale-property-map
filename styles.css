@@ -1,0 +1,27 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+#map {
+    height: 70vh;
+    width: 100%;
+}
+#form {
+    padding: 20px;
+    text-align: center;
+}
+input {
+    margin: 5px;
+    padding: 5px;
+    width: 200px;
+}
+button {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #45a049;
+}
