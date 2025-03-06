@@ -29,10 +29,6 @@
 
     <div id="container">
         <div id="map"></div>
-        <div id="sidebar">
-            <h2>Properties Nearby (30mi)</h2>
-            <ul id="property-list"></ul>
-        </div>
     </div>
 
     <div id="add-modal" class="modal">
@@ -49,7 +45,8 @@
                 <option value="Commercial Property">Commercial Property</option>
                 <option value="Mobile Home">Mobile Home</option>
             </select>
-            <input type="number" id="price" placeholder="Price ($)">
+            <input type="number" id="price" placeholder="Asking Price ($)">
+            <input type="number" id="purchase-price" placeholder="Purchase Price ($) (if bought)">
             <select id="property-status">
                 <option value="forSale">For Sale</option>
                 <option value="sold">Sold</option>

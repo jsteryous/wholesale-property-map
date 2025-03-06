@@ -32,25 +32,12 @@ body {
     background-color: #f0f0f0;
 }
 #container {
-    display: flex;
     height: calc(100vh - 60px);
     margin-top: 60px;
 }
 #map {
-    flex: 1;
+    width: 100%;
     height: 100%;
-}
-#sidebar {
-    width: 320px;
-    background-color: #f8f9fa;
-    padding: 15px;
-    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
-    overflow-y: auto;
-}
-#sidebar h2 {
-    font-size: 1.2em;
-    margin: 0 0 10px;
-    color: #333;
 }
 button {
     padding: 8px 15px;
@@ -82,35 +69,27 @@ button:hover {
 .popup-btn.edit:hover {
     background-color: #218838;
 }
-.property-item {
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #fff;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.property-item:hover {
-    background-color: #e9ecef;
-}
 .custom-marker {
-    background-color: #ff4444;
+    background: linear-gradient(135deg, #ff4444 0%, #cc3333 100%);
     color: white;
-    padding: 5px 10px;
-    border-radius: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    border: 2px solid #fff;
+    font-weight: 600;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.8);
 }
 .custom-marker.sold {
-    background-color: #ffcc00;
-    color: black;
+    background: linear-gradient(135deg, #ffcc00 0%, #e6b800 100%);
+    color: #333;
 }
 .custom-marker.off-market {
-    background-color: #6c757d;
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
     color: white;
 }
 .modal {

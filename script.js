@@ -71,8 +71,6 @@ function getDistance(lat1, lon1, lat2, lon2) {
 // Load Properties
 function loadProperties() {
     db.collection("properties").onSnapshot((snapshot) => {
-        const propertyList = document.getElementById('property-list');
-        propertyList.innerHTML = '';
         snapshot.forEach((doc) => {
             const data = doc.data();
             const distance = getDistance(userLocation[0], userLocation[1], data.lat, data.lng);
@@ -96,35 +94,32 @@ function loadProperties() {
             } else if (data.propertyType === currentTypeFilter) {
                 shouldDisplayType = true;
             } else if (!data.propertyType && currentTypeFilter === 'House') {
-                // Handle legacy properties (e.g., "Residential" or undefined)
                 shouldDisplayType = true;
             }
 
             if (distance <= 30 && shouldDisplayStatus && shouldDisplayType) {
-                // Sidebar Item
-                const li = document.createElement('li');
-                li.className = 'property-item';
-                li.innerHTML = `${data.address || 'N/A'}<br><small>${data.ownerName || 'Unknown Owner'} - ${formatPrice(data.price)}</small>`;
-                li.onclick = () => map.panTo([data.lat, data.lng]);
-                propertyList.appendChild(li);
-
                 // Marker
                 if (markers[doc.id]) markers[doc.id].remove();
                 const markerClass = data.sold ? 'sold' : data.offMarket ? 'off-market' : '';
                 const icon = L.divIcon({
                     className: `custom-marker ${markerClass}`,
                     html: `<div>${formatPrice(data.price)}</div>`,
-                    iconSize: [80, 24]
+                    iconSize: [40, 40]
                 });
                 markers[doc.id] = L.marker([data.lat, data.lng], { icon })
                     .addTo(map)
+                    .on('click', () => {
+                        map.setView([data.lat, data.lng], 15); // Zoom in on click
+                    })
                     .bindPopup(`
                         <b>Owner:</b> ${data.ownerName || 'N/A'}<br>
                         <b>Address:</b> ${data.address || 'N/A'}<br>
                         <b>County:</b> ${data.county || 'N/A'}<br>
                         <b>Parcel ID:</b> ${data.parcelId || 'N/A'}<br>
                         <b>Type:</b> ${data.propertyType || 'N/A'}<br>
-                        <b>Price:</b> ${formatPrice(data.price)}<br>
+                        <b>Asking Price:</b> ${formatPrice(data.price)}<br>
+                        ${data.purchasePrice ? `<b>Purchase Price:</b> ${formatPrice(data.purchasePrice)}<br>` : ''}
+                        ${data.purchasePrice ? `<b>Savings:</b> ${formatPrice(data.price - data.purchasePrice)}<br>` : ''}
                         <b>Status:</b> ${data.sold ? 'Sold' : data.offMarket ? 'Off Market' : 'For Sale'}<br>
                         <button class="popup-btn edit" onclick="editProperty('${doc.id}')">Edit</button>
                         <button class="popup-btn delete" onclick="deleteProperty('${doc.id}')">Delete</button>
@@ -214,9 +209,11 @@ async function addProperty() {
     const propertyType = document.getElementById('property-type').value;
     const priceInput = document.getElementById('price').value;
     const price = priceInput ? parseInt(priceInput) : null;
+    const purchasePriceInput = document.getElementById('purchase-price').value;
+    const purchasePrice = purchasePriceInput ? parseInt(purchasePriceInput) : null;
     const status = document.getElementById('property-status').value;
 
-    console.log("Form data:", { ownerName, address, county, parcelId, propertyType, price, status });
+    console.log("Form data:", { ownerName, address, county, parcelId, propertyType, price, purchasePrice, status });
 
     if (!address || !price) {
         console.log("Validation failed: Address or Price missing");
@@ -252,6 +249,7 @@ async function addProperty() {
         parcelId: parcelId || null,
         propertyType: propertyType || null,
         price: price,
+        purchasePrice: purchasePrice,
         lat: coords.lat,
         lng: coords.lng,
         sold: status === 'sold',
@@ -303,6 +301,7 @@ function editProperty(id) {
             document.getElementById('parcel-id').value = data.parcelId || '';
             document.getElementById('property-type').value = data.propertyType || '';
             document.getElementById('price').value = data.price;
+            document.getElementById('purchase-price').value = data.purchasePrice || '';
             document.getElementById('property-status').value = data.sold ? 'sold' : data.offMarket ? 'offMarket' : 'forSale';
             document.getElementById('add-modal').dataset.editId = id;
             document.getElementById('add-modal').dataset.isEdit = 'true';
@@ -361,6 +360,7 @@ function closeAddModal() {
     document.getElementById('parcel-id').value = '';
     document.getElementById('property-type').value = '';
     document.getElementById('price').value = '';
+    document.getElementById('purchase-price').value = '';
     document.getElementById('property-status').value = 'forSale';
     document.getElementById('add-modal').dataset.editId = '';
     document.getElementById('add-modal').dataset.isEdit = 'false';
