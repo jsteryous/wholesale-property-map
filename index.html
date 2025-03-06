@@ -9,9 +9,22 @@
 </head>
 <body>
     <div id="search-bar">
-        <input type="text" id="search-input" placeholder="Search by address or owner...">
+        <input type="text" id="search-input" placeholder="Search any address..." onkeypress="if(event.key === 'Enter') searchProperties()">
         <button onclick="searchProperties()">Search</button>
         <button onclick="openAddModal()">Add Property</button>
+        <select id="filter-status-dropdown" onchange="filterProperties()">
+            <option value="all">Filter Status: All</option>
+            <option value="sold">Sold</option>
+            <option value="forSale">For Sale</option>
+            <option value="offMarket">Off Market</option>
+        </select>
+        <select id="filter-type-dropdown" onchange="filterProperties()">
+            <option value="all">Filter Type: All</option>
+            <option value="House">House</option>
+            <option value="Lot/Land">Lot/Land</option>
+            <option value="Commercial Property">Commercial Property</option>
+            <option value="Mobile Home">Mobile Home</option>
+        </select>
     </div>
 
     <div id="container">
@@ -29,10 +42,21 @@
             <input type="text" id="property-address" placeholder="Property Address">
             <input type="text" id="county" placeholder="County">
             <input type="text" id="parcel-id" placeholder="Parcel ID">
-            <input type="text" id="property-type" placeholder="Property Type (e.g., Residential, Commercial, Land)">
+            <select id="property-type">
+                <option value="">Select Property Type</option>
+                <option value="House">House</option>
+                <option value="Lot/Land">Lot/Land</option>
+                <option value="Commercial Property">Commercial Property</option>
+                <option value="Mobile Home">Mobile Home</option>
+            </select>
             <input type="number" id="price" placeholder="Price ($)">
-            <button onclick="addProperty()">Save</button>
-            <button onclick="closeAddModal()">Cancel</button>
+            <select id="property-status">
+                <option value="forSale">For Sale</option>
+                <option value="sold">Sold</option>
+                <option value="offMarket">Off Market</option>
+            </select>
+            <button id="save-property-btn">Save</button>
+            <button id="cancel-modal-btn">Cancel</button>
         </div>
     </div>
 
