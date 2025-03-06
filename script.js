@@ -3,18 +3,18 @@ firebase.initializeApp(window.firebaseConfig);
 const db = firebase.firestore();
 
 // Initialize Leaflet Map
-const map = L.map('map').setView([40.7128, -74.0060], 10);
+const map = L.map('map').setView([42.6977, -73.1088], 10); // Center on North Adams, MA
 L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     attribution: '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
     tileSize: 512,
     zoomOffset: -1,
     id: 'mapbox/streets-v11',
-    accessToken: window.mapboxAccessToken // Use the global variable
+    accessToken: window.mapboxAccessToken
 }).addTo(map);
 
 const markers = {};
-let userLocation = [40.7128, -74.0060];
-let currentStatusFilter = 'all';
+let userLocation = [42.6977, -73.1088]; // Default to North Adams, MA
+let currentStatusFilter = 'sold'; // Default to sold properties
 let currentTypeFilter = 'all';
 let tempMarker = null;
 
@@ -24,7 +24,7 @@ function formatPrice(price) {
     return price >= 1000 ? `$${(price / 1000).toFixed(0)}K` : `$${price}`;
 }
 
-// Geocode Address
+// Geocode Address (unchanged)
 async function geocodeAddress(address) {
     console.log("Geocoding address:", address);
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${window.mapboxAccessToken}&limit=1`;
@@ -45,7 +45,7 @@ async function geocodeAddress(address) {
     }
 }
 
-// Haversine Distance (in miles)
+// Haversine Distance (optional, kept for reference but not used in loadProperties)
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -57,14 +57,19 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// Load Properties (your provided function)
+// Load Properties (updated to remove distance filter)
 function loadProperties() {
+    console.log('loadProperties called');
+    console.log('Filters:', { status: currentStatusFilter, type: currentTypeFilter });
     db.collection("properties").onSnapshot((snapshot) => {
         console.log(`Fetched ${snapshot.size} properties from Firestore`);
+        if (snapshot.empty) {
+            console.log('No properties found in Firestore');
+            return;
+        }
         snapshot.forEach((doc) => {
             const data = doc.data();
             console.log('Processing property:', data);
-            const distance = getDistance(userLocation[0], userLocation[1], data.lat, data.lng);
 
             // Apply status filter
             let shouldDisplayStatus = false;
@@ -77,6 +82,7 @@ function loadProperties() {
             } else if (currentStatusFilter === 'offMarket' && data.offMarket) {
                 shouldDisplayStatus = true;
             }
+            console.log('Status filter result:', shouldDisplayStatus);
 
             // Apply type filter
             let shouldDisplayType = false;
@@ -87,9 +93,10 @@ function loadProperties() {
             } else if (!data.propertyType && currentTypeFilter === 'House') {
                 shouldDisplayType = true;
             }
+            console.log('Type filter result:', shouldDisplayType);
 
-            if (distance <= 30 && shouldDisplayStatus && shouldDisplayType) {
-                // Marker
+            // No distance filter—show all properties that pass status and type filters
+            if (shouldDisplayStatus && shouldDisplayType) {
                 if (markers[doc.id]) markers[doc.id].remove();
                 const markerClass = data.sold ? 'sold' : data.offMarket ? 'off-market' : '';
                 const icon = L.divIcon({
@@ -100,7 +107,7 @@ function loadProperties() {
                 markers[doc.id] = L.marker([data.lat, data.lng], { icon })
                     .addTo(map)
                     .on('click', () => {
-                        map.setView([data.lat, data.lng], 15); // Zoom in on click
+                        map.setView([data.lat, data.lng], 15);
                     })
                     .bindPopup(`
                         <b>Owner:</b> ${data.ownerName || 'N/A'}<br>
@@ -120,8 +127,9 @@ function loadProperties() {
                 if (markers[doc.id]) {
                     markers[doc.id].remove();
                     delete markers[doc.id];
-                    console.log(`Removed marker for ${data.address} due to filter or distance`);
+                    console.log(`Removed marker for ${data.address} due to filter`);
                 }
+                console.log(`Skipped ${data.address}: Status=${shouldDisplayStatus}, Type=${shouldDisplayType}`);
             }
         });
     }, (error) => {
@@ -129,7 +137,7 @@ function loadProperties() {
     });
 }
 
-// Search Properties (Map-style search)
+// Search Properties (unchanged)
 async function searchProperties() {
     const query = document.getElementById('search-input').value;
     if (!query) return;
@@ -168,7 +176,7 @@ async function searchProperties() {
     }
 }
 
-// Add Property at Searched Location
+// Add Property at Searched Location (unchanged)
 function addPropertyAtLocation(address, lat, lng) {
     document.getElementById('property-address').value = address;
     document.getElementById('add-modal').dataset.lat = lat;
@@ -181,14 +189,14 @@ function addPropertyAtLocation(address, lat, lng) {
     openAddModal();
 }
 
-// Filter Properties
+// Filter Properties (unchanged)
 function filterProperties() {
     currentStatusFilter = document.getElementById('filter-status-dropdown').value;
     currentTypeFilter = document.getElementById('filter-type-dropdown').value;
     loadProperties();
 }
 
-// Add Property
+// Add Property (unchanged)
 async function addProperty() {
     const ownerName = document.getElementById('owner-name').value;
     const address = document.getElementById('property-address').value;
@@ -262,7 +270,7 @@ async function addProperty() {
     }
 }
 
-// Edit Property
+// Edit Property (unchanged)
 function editProperty(id) {
     db.collection("properties").doc(id).get().then((doc) => {
         if (doc.exists) {
@@ -288,7 +296,7 @@ function editProperty(id) {
     });
 }
 
-// Delete Property
+// Delete Property (unchanged)
 function deleteProperty(id) {
     if (confirm("Delete this property?")) {
         db.collection("properties").doc(id).delete()
@@ -297,7 +305,7 @@ function deleteProperty(id) {
     }
 }
 
-// Modal Controls
+// Modal Controls (unchanged)
 function openAddModal() {
     document.getElementById('add-modal').style.display = 'block';
     const modalContent = document.querySelector('.modal-content');
@@ -334,7 +342,7 @@ function closeAddModal() {
     document.querySelector('#add-modal button#save-property-btn').textContent = 'Save';
 }
 
-// Show Feedback
+// Show Feedback (unchanged)
 function showFeedback(message) {
     const feedback = document.getElementById('feedback');
     feedback.textContent = message;
@@ -342,12 +350,16 @@ function showFeedback(message) {
     setTimeout(() => feedback.style.display = 'none', 2000);
 }
 
-// Get User Location
+// Get User Location (optional, still included but not required for filtering)
 navigator.geolocation.getCurrentPosition(
     (position) => {
         userLocation = [position.coords.latitude, position.coords.longitude];
+        console.log('User location set:', userLocation);
         map.setView(userLocation, 10);
         loadProperties();
     },
-    () => loadProperties()
+    () => {
+        console.log('Geolocation failed, using default location');
+        loadProperties(); // Load properties with default North Adams view
+    }
 );
