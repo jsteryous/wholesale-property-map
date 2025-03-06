@@ -1,9 +1,10 @@
 // Initialize Firebase using config from config.js
 firebase.initializeApp(window.firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 // Initialize Leaflet Map
-const map = L.map('map').setView([42.6977, -73.1088], 10); // Center on North Adams, MA
+const map = L.map('map').setView([42.6977, -73.1088], 10); // North Adams, MA
 L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
     attribution: '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
     tileSize: 512,
@@ -13,10 +14,61 @@ L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_toke
 }).addTo(map);
 
 const markers = {};
-let userLocation = [42.6977, -73.1088]; // Default to North Adams, MA
-let currentStatusFilter = 'sold'; // Default to sold properties
+let userLocation = [42.6977, -73.1088];
+let currentStatusFilter = 'sold';
 let currentTypeFilter = 'all';
 let tempMarker = null;
+
+// Authentication Functions
+function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+            document.getElementById('login-modal').style.display = 'none';
+            showFeedback('Logged in successfully!');
+        })
+        .catch((error) => alert('Login failed: ' + error.message));
+}
+
+function signup() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+            document.getElementById('login-modal').style.display = 'none';
+            showFeedback('Signed up successfully!');
+        })
+        .catch((error) => alert('Signup failed: ' + error.message));
+}
+
+function logout() {
+    auth.signOut()
+        .then(() => showFeedback('Logged out successfully!'))
+        .catch((error) => console.error('Logout failed:', error));
+}
+
+function showLoginModal() {
+    document.getElementById('login-modal').style.display = 'block';
+}
+
+// Handle Auth State Changes
+auth.onAuthStateChanged((user) => {
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const addPropertyBtn = document.getElementById('add-property-btn');
+    if (user) {
+        console.log('User logged in:', user.uid);
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'inline';
+        addPropertyBtn.style.display = 'inline';
+    } else {
+        console.log('No user logged in');
+        loginBtn.style.display = 'inline';
+        logoutBtn.style.display = 'none';
+        addPropertyBtn.style.display = 'none';
+    }
+});
 
 // Format Price to "K"
 function formatPrice(price) {
@@ -24,7 +76,7 @@ function formatPrice(price) {
     return price >= 1000 ? `$${(price / 1000).toFixed(0)}K` : `$${price}`;
 }
 
-// Geocode Address (unchanged)
+// Geocode Address
 async function geocodeAddress(address) {
     console.log("Geocoding address:", address);
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${window.mapboxAccessToken}&limit=1`;
@@ -45,19 +97,7 @@ async function geocodeAddress(address) {
     }
 }
 
-// Haversine Distance (optional, kept for reference but not used in loadProperties)
-function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 3958.8;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-// Load Properties (updated to remove distance filter)
+// Load Properties
 function loadProperties() {
     console.log('loadProperties called');
     console.log('Filters:', { status: currentStatusFilter, type: currentTypeFilter });
@@ -71,7 +111,6 @@ function loadProperties() {
             const data = doc.data();
             console.log('Processing property:', data);
 
-            // Apply status filter
             let shouldDisplayStatus = false;
             if (currentStatusFilter === 'all') {
                 shouldDisplayStatus = true;
@@ -84,7 +123,6 @@ function loadProperties() {
             }
             console.log('Status filter result:', shouldDisplayStatus);
 
-            // Apply type filter
             let shouldDisplayType = false;
             if (currentTypeFilter === 'all') {
                 shouldDisplayType = true;
@@ -95,7 +133,6 @@ function loadProperties() {
             }
             console.log('Type filter result:', shouldDisplayType);
 
-            // No distance filter—show all properties that pass status and type filters
             if (shouldDisplayStatus && shouldDisplayType) {
                 if (markers[doc.id]) markers[doc.id].remove();
                 const markerClass = data.sold ? 'sold' : data.offMarket ? 'off-market' : '';
@@ -119,8 +156,8 @@ function loadProperties() {
                         ${data.purchasePrice ? `<b>Purchase Price:</b> ${formatPrice(data.purchasePrice)}<br>` : ''}
                         ${data.purchasePrice ? `<b>Savings:</b> ${formatPrice(data.price - data.purchasePrice)}<br>` : ''}
                         <b>Status:</b> ${data.sold ? 'Sold' : data.offMarket ? 'Off Market' : 'For Sale'}<br>
-                        <button class="popup-btn edit" onclick="editProperty('${doc.id}')">Edit</button>
-                        <button class="popup-btn delete" onclick="deleteProperty('${doc.id}')">Delete</button>
+                        ${auth.currentUser && data.ownerId === auth.currentUser.uid ? `<button class="popup-btn edit" onclick="editProperty('${doc.id}')">Edit</button>` : ''}
+                        ${auth.currentUser && data.ownerId === auth.currentUser.uid ? `<button class="popup-btn delete" onclick="deleteProperty('${doc.id}')">Delete</button>` : ''}
                     `);
                 console.log(`Added marker for ${data.address} at [${data.lat}, ${data.lng}]`);
             } else {
@@ -137,7 +174,7 @@ function loadProperties() {
     });
 }
 
-// Search Properties (unchanged)
+// Search Properties
 async function searchProperties() {
     const query = document.getElementById('search-input').value;
     if (!query) return;
@@ -176,7 +213,7 @@ async function searchProperties() {
     }
 }
 
-// Add Property at Searched Location (unchanged)
+// Add Property at Searched Location
 function addPropertyAtLocation(address, lat, lng) {
     document.getElementById('property-address').value = address;
     document.getElementById('add-modal').dataset.lat = lat;
@@ -189,15 +226,21 @@ function addPropertyAtLocation(address, lat, lng) {
     openAddModal();
 }
 
-// Filter Properties (unchanged)
+// Filter Properties
 function filterProperties() {
     currentStatusFilter = document.getElementById('filter-status-dropdown').value;
     currentTypeFilter = document.getElementById('filter-type-dropdown').value;
     loadProperties();
 }
 
-// Add Property (unchanged)
+// Add Property (Updated with ownerId)
 async function addProperty() {
+    if (!auth.currentUser) {
+        alert('Please log in to add a property!');
+        showLoginModal();
+        return;
+    }
+
     const ownerName = document.getElementById('owner-name').value;
     const address = document.getElementById('property-address').value;
     const county = document.getElementById('county').value;
@@ -240,7 +283,8 @@ async function addProperty() {
         lat: coords.lat,
         lng: coords.lng,
         sold: status === 'sold',
-        offMarket: status === 'offMarket'
+        offMarket: status === 'offMarket',
+        ownerId: auth.currentUser.uid // Tie to authenticated user
     };
 
     if (isEdit) {
@@ -251,7 +295,7 @@ async function addProperty() {
             })
             .catch((error) => {
                 console.error("Error updating property:", error);
-                alert("Failed to update property.");
+                alert("Failed to update property: " + error.message);
             });
     } else {
         db.collection("properties").add(propertyData)
@@ -265,16 +309,25 @@ async function addProperty() {
             })
             .catch((error) => {
                 console.error("Error adding property:", error);
-                alert("Failed to add property.");
+                alert("Failed to add property: " + error.message);
             });
     }
 }
 
-// Edit Property (unchanged)
+// Edit Property
 function editProperty(id) {
+    if (!auth.currentUser) {
+        alert('Please log in to edit a property!');
+        showLoginModal();
+        return;
+    }
     db.collection("properties").doc(id).get().then((doc) => {
         if (doc.exists) {
             const data = doc.data();
+            if (data.ownerId !== auth.currentUser.uid) {
+                alert("You can only edit your own properties!");
+                return;
+            }
             document.getElementById('owner-name').value = data.ownerName || '';
             document.getElementById('property-address').value = data.address || '';
             document.getElementById('county').value = data.county || '';
@@ -296,17 +349,33 @@ function editProperty(id) {
     });
 }
 
-// Delete Property (unchanged)
+// Delete Property
 function deleteProperty(id) {
-    if (confirm("Delete this property?")) {
-        db.collection("properties").doc(id).delete()
-            .then(() => showFeedback("Property deleted!"))
-            .catch((error) => console.error("Error deleting property:", error));
+    if (!auth.currentUser) {
+        alert('Please log in to delete a property!');
+        showLoginModal();
+        return;
     }
+    db.collection("properties").doc(id).get().then((doc) => {
+        if (doc.exists && doc.data().ownerId === auth.currentUser.uid) {
+            if (confirm("Delete this property?")) {
+                db.collection("properties").doc(id).delete()
+                    .then(() => showFeedback("Property deleted!"))
+                    .catch((error) => console.error("Error deleting property:", error));
+            }
+        } else {
+            alert("You can only delete your own properties!");
+        }
+    });
 }
 
-// Modal Controls (unchanged)
+// Modal Controls
 function openAddModal() {
+    if (!auth.currentUser) {
+        alert('Please log in to add a property!');
+        showLoginModal();
+        return;
+    }
     document.getElementById('add-modal').style.display = 'block';
     const modalContent = document.querySelector('.modal-content');
     modalContent.removeEventListener('click', modalClickHandler);
@@ -342,7 +411,7 @@ function closeAddModal() {
     document.querySelector('#add-modal button#save-property-btn').textContent = 'Save';
 }
 
-// Show Feedback (unchanged)
+// Show Feedback
 function showFeedback(message) {
     const feedback = document.getElementById('feedback');
     feedback.textContent = message;
@@ -350,7 +419,7 @@ function showFeedback(message) {
     setTimeout(() => feedback.style.display = 'none', 2000);
 }
 
-// Get User Location (optional, still included but not required for filtering)
+// Load properties on page load
 navigator.geolocation.getCurrentPosition(
     (position) => {
         userLocation = [position.coords.latitude, position.coords.longitude];
@@ -360,6 +429,6 @@ navigator.geolocation.getCurrentPosition(
     },
     () => {
         console.log('Geolocation failed, using default location');
-        loadProperties(); // Load properties with default North Adams view
+        loadProperties();
     }
 );

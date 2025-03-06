@@ -11,7 +11,9 @@
     <div id="search-bar">
         <input type="text" id="search-input" placeholder="Search any address..." onkeypress="if(event.key === 'Enter') searchProperties()">
         <button onclick="searchProperties()">Search</button>
-        <button onclick="openAddModal()">Add Property</button>
+        <button id="add-property-btn" onclick="openAddModal()" style="display: none;">Add Property</button>
+        <button id="login-btn" onclick="showLoginModal()">Login</button>
+        <button id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
         <select id="filter-status-dropdown" onchange="filterProperties()">
             <option value="all">Filter Status: All</option>
             <option value="sold">Sold</option>
@@ -57,11 +59,23 @@
         </div>
     </div>
 
+    <div id="login-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Login / Sign Up</h2>
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <button onclick="signup()">Sign Up</button>
+            <button onclick="document.getElementById('login-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
     <div id="feedback" class="feedback"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-auth-compat.js"></script> <!-- Add Auth -->
     <script src="config.js"></script>
     <script src="script.js"></script>
     <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'91c276e3add14576',t:'MTc0MTI3MDUxOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>

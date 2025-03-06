@@ -132,3 +132,19 @@ button:hover {
     border-radius: 5px;
     display: none;
 }
+
+/* Add to the bottom of styles.css */
+#login-modal .modal-content {
+    width: 300px;
+}
+#login-modal input {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+#login-modal button {
+    margin: 5px;
+}
